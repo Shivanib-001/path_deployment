@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+    <style>
+        body {
+            background-color: #343434;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        #header {
+            position: sticky;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50px;
+            background-color: #00000050;
+            color: white;
+            padding: 10px;
+        }
+        button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>Test Data Points</h1>
+        <div>
+            <button onclick="beginTracking()">Begin</button>
+            <button onclick="stopTracking()">Stop</button>
+
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+
+    <script>
+        const ACCESS_TOKEN = "pk.eyJ1Ijoic3VtaXRjaGF0dGVyamVlIiwiYSI6ImNrd2prODhoazB6enIycHBrZmRrY2FtMGkifQ.WS22x5YJykpK9aFATKT8EA";
+        
+        // Initialize the map
+        const map = L.map("map").setView([28.436, 77.304], 19);
+        L.tileLayer(`https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${ACCESS_TOKEN}`, {
+            maxZoom: 24,
+            tileSize: 512,
+            zoomOffset: -1,
+        }).addTo(map);
+
+        let eventSource = null;
+        let latestMarker = null;
+        let livePath = L.polyline([], { color: 'blue' }).addTo(map);
+
+        const MAX_POINTS = 10;
+        let lastPanTime = 0;
+        const PAN_INTERVAL = 2000; // ms
+
+        // Click to drop manual markers
+        map.on("click", function (e) {
+            const { lat, lng } = e.latlng;
+            console.log("Clicked at:", lat, lng);
+            L.marker([lat, lng]).addTo(map);
+            arr.push(e.latlng);
+            dataToBeSent.push(arr);
+        });
+        
+           
+
+        // Start streaming data
+        function beginTracking() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource("/livelocation");
+
+            eventSource.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+                updateLiveLocation(data.latitude, data.longitude);
+            };
+
+            eventSource.onerror = function (e) {
+                console.error("Stream error:", e);
+                stopTracking();
+            };
+        }
+
+        // Stop streaming
+        function stopTracking() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                console.log("Tracking stopped.");
+            }
+        }
+
+        // Limit points in polyline
+        function updateLiveLocation(latitude, longitude) {
+            if (!latitude || !longitude) return;
+
+            const latLng = [latitude, longitude];
+
+            // Sliding window to avoid memory bloat
+            let latLngs = livePath.getLatLngs();
+            latLngs.push(latLng);
+            if (latLngs.length > MAX_POINTS) {
+                latLngs.shift();
+            }
+            livePath.setLatLngs(latLngs);
+
+            // Update marker
+            if (latestMarker) {
+                map.removeLayer(latestMarker);
+            }
+            latestMarker = L.marker(latLng).addTo(map);
+
+            // Throttle map panning
+            const now = Date.now();
+            if (now - lastPanTime > PAN_INTERVAL) {
+                map.setView(latLng, 19);
+                lastPanTime = now;
+            }
+        }
+     
+        
+        
+    </script>
+
+</body>
+</html>
+
