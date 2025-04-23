@@ -3,33 +3,42 @@ import os
 class GNSSData:
     def __init__(self, filepath):
         self.filepath = filepath
-        self._last_line_count = 0
+        self._last_line = None
 
     def last_data(self):
         if not os.path.exists(self.filepath):
             return None
 
         try:
-            with open(self.filepath, 'r') as file:
-                lines = file.readlines()
-                current_line_count = len(lines)
+            with open(self.filepath, 'rb') as file:
 
-                if current_line_count <= self._last_line_count:
-                    return None
+                file.seek(0, os.SEEK_END)
+                file_size = file.tell()
+                block_size = 1024
+                data = b''
+                while file_size > 0:
+                    seek_size = min(block_size, file_size)
+                    file.seek(file_size - seek_size)
+                    chunk = file.read(seek_size)
+                    data = chunk + data
+                    file_size -= seek_size
+                    if b'\n' in chunk:
+                        break
 
-                self._last_line_count = current_line_count
-                last_line = lines[-1].strip()
-                
-                #expected data : Lat:28.1234,Lon:77.2345
+                lines = data.split(b'\n')
+                last_line = lines[-1] if lines[-1] else lines[-2]
+                last_line = last_line.decode().strip()
 
-                if "Lat" in last_line and "Lon" in last_line:
-                    parts = last_line.replace(" ", "").split(",")
-                    lat = float(parts[0].split(":")[1])
-                    lon = float(parts[1].split(":")[1])
+                self._last_line = last_line
+
+                if "Lat" in last_line and "Lng" in last_line:
+                    parts = last_line.split(":")
+                    lat = float(parts[4].split(" ")[1])
+                    lon = float(parts[5].split(" ")[1])
+                    print(lat, lon)
                     return {"latitude": lat, "longitude": lon}
 
         except Exception as e:
             print(f"Error reading GPS data: {e}")
 
         return None
-
