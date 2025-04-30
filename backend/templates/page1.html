@@ -194,6 +194,7 @@
         dataToBeSent=[];
         function fetchReq() {
         dataToBeSent[0]=arr;
+        L.polyline(arr, { color: "red" }).addTo(map);
         console.log(JSON.stringify(dataToBeSent));
         fetch("/foo", {
           // Adding method type
@@ -222,7 +223,7 @@
           })
           .then((post) => {
             console.log(post);
-            var polyline_ = L.polyline(post.track, { color: "red" }).addTo(map);
+            var polyline_ = L.polyline(post.track, { color: "yellow" }).addTo(map);
             map.fitBounds(polyline_.getBounds());
        }); 
 }
@@ -232,4 +233,3 @@
 
 </body>
 </html>
-
