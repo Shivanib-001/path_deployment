@@ -195,7 +195,7 @@
         dataToBeSent=[];
         function fetchReq() {
         dataToBeSent[0]=arr;
-        L.polyline(arr, { color: "red" }).addTo(map);
+        L.polygon(arr, { color: "green" }).addTo(map);
         console.log(JSON.stringify(dataToBeSent));
         fetch("/foo", {
           // Adding method type
