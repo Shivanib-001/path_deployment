@@ -2,11 +2,15 @@ import os
 
 class GNSSData:
     def __init__(self, filepath):
+        """
+        :param filepath - path to data file
+        """
         self.filepath = filepath
         self._last_line = None
 
     def last_data(self):
         if not os.path.exists(self.filepath):
+            print("The specified path does not exist")
             return None
 
         try:
@@ -34,15 +38,20 @@ class GNSSData:
                         return None  
 
                     self._last_line = line
-
+                    # pattern :  speed:0.04 Lat:28.432915 Lng:77.306671 head:0.00 hdop:0.99 height:214.40 LatK:28.432915 LngK:77.306671
                     if "Lat" in line and "Lng" in line:
-                        parts = line.split(":")
-                        lat = float(parts[4].split(" ")[1])
-                        lon = float(parts[5].split(" ")[1])
-                        print(lat, lon)
+                        parts = line.split(" ")
+                        #print(parts)
+                        lat = float(parts[1].split(":")[1])
+                        lon = float(parts[2].split(":")[1])
+                        #latk = float(parts[6].split(":")[1])
+                        #lonk = float(parts[7].split(":")[1])
+                        
+                        #return {"latitude": lat, "longitude": lon, "latk":latk, "lonk":lonk}
                         return {"latitude": lat, "longitude": lon}
 
         except Exception as e:
             print(f"Error reading GPS data: {e}")
 
         return None
+
